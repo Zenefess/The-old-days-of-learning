@@ -1,0 +1,128 @@
+/**********************************************************
+ * File: memcopy.h                      Created: Nov.2007 *
+ *                                Last modified: Nov.2007 *
+ *                                                        *
+ * Desc: Aligned memory copy & clear functions.           *
+ *                                                        *
+ * Copyright (c) David William Bull. All rights reserved. *
+ **********************************************************/
+
+void __fastcall copyDW(int nDW, void *src, void *dest) {
+	__asm {
+		mov   eax, DWORD PTR [dest]	// Athlon64 2.616Mhz, 436Mhz Dual-channel DDR; T1,2,3,2,6 (2x 1.0GB)
+		cmp   ecx, 4						// 47.85ms to copy 32MB (669MB/sec); 380.36ms to copy 256MB (673MB/sec).
+		jl    trailingDWORDs
+loopstart:
+	movq     mm0, QWORD PTR [edx]
+	movq     mm1, QWORD PTR [edx+8]
+		sub   ecx, 4
+		add   edx, 16
+	movq     QWORD PTR [eax], mm0
+	movq     QWORD PTR [eax+8], mm1
+		add   eax, 16
+		cmp   ecx, 4
+		jge   loopstart
+		cmp   ecx, 0	// 2 adjacent jumps often result in incorrect branch prediction.
+		je    loopend
+trailingDWORDs:
+		mov   ebx, DWORD PTR [edx]
+		mov   DWORD PTR [eax], ebx
+		dec   ecx
+		jz    loopend
+		mov   ebx, DWORD PTR [edx+4]
+		mov   DWORD PTR [eax+4], ebx
+		dec   ecx
+		jz    loopend
+		mov   ebx, DWORD PTR [edx+8]
+		mov   DWORD PTR [eax+8], ebx
+loopend:
+	emms
+	}
+}
+
+void __fastcall copyNTDW(int nDW, void *src, void *dest) {
+	__asm {
+		mov   eax, DWORD PTR [dest]	// Athlon64 2.616Mhz, 436Mhz Dual-channel DDR; T1,2,3,2,6 (2x 1.0GB)
+		cmp   ecx, 4						// 35.74ms to copy 32MB (895MB/sec); 204.88ms to copy 256MB (1.22GB/sec).
+		jl    trailingDWORDs
+loopstart:
+	movq     mm0, QWORD PTR [edx]
+	movq     mm1, QWORD PTR [edx+8]
+		sub   ecx, 4
+		add   edx, 16
+	movntq   QWORD PTR [eax], mm0
+	movntq   QWORD PTR [eax+8], mm1
+		add   eax, 16
+		cmp   ecx, 4
+		jge   loopstart
+		cmp   ecx, 0	// 2 adjacent jumps often result in incorrect branch prediction.
+		je    loopend
+trailingDWORDs:
+		mov   ebx, DWORD PTR [edx]
+		mov   DWORD PTR [eax], ebx
+		dec   ecx
+		jz    loopend
+		mov   ebx, DWORD PTR [edx+4]
+		mov   DWORD PTR [eax+4], ebx
+		dec   ecx
+		jz    loopend
+		mov   ebx, DWORD PTR [edx+8]
+		mov   DWORD PTR [eax+8], ebx
+loopend:
+	emms
+	}
+}
+
+void __fastcall clearDW(int nDW, void *src) {
+	__asm {
+		pxor  mm0, mm0						// Athlon64 2.616Mhz, 436Mhz Dual-channel DDR; T1,2,3,2,6 (2x 1.0GB)
+		cmp   ecx, 4						// 13.13ms to clear 32MB (2.38GB/sec); 105.00ms to clear 256MB (2.38GB/sec).
+		jl    trailingDWORDS
+loopstart:
+	movq     QWORD PTR [edx], mm0
+	movq     QWORD PTR [edx+8], mm0
+		sub   ecx, 4
+		add   edx, 16
+		cmp   ecx, 4
+		jge   loopstart
+		cmp   ecx, 0	// 2 adjacent jumps often result in incorrect branch prediction.
+		je    loopend
+trailingDWORDs:
+		mov   DWORD PTR [edx], 0
+		dec   ecx
+		jz    loopend
+		mov   DWORD PTR [edx+4], 0
+		dec   ecx
+		jz    loopend
+		mov   DWORD PTR [edx+8], 0
+loopend:
+	emms
+	}
+}
+
+void __fastcall clearNTDW(int nDW, void *src) {
+	__asm {
+		pxor  mm0, mm0						// Athlon64 2.616Mhz, 436Mhz Dual-channel DDR; T1,2,3,2,6 (2x 1.0GB)
+		cmp   ecx, 4						// 9.70ms to clear 32MB (3.22GB/sec); 78.81ms to clear 256MB (3.17GB/sec).
+		jl    trailingDWORDS
+loopstart:
+	movntq   QWORD PTR [edx], mm0
+	movntq   QWORD PTR [edx+8], mm0
+		sub   ecx, 4
+		add   edx, 16
+		cmp   ecx, 4
+		jge   loopstart
+		cmp   ecx, 0	// 2 adjacent jumps often result in incorrect branch prediction.
+		je    loopend
+trailingDWORDs:
+		mov   DWORD PTR [edx], 0
+		dec   ecx
+		jz    loopend
+		mov   DWORD PTR [edx+4], 0
+		dec   ecx
+		jz    loopend
+		mov   DWORD PTR [edx+8], 0
+loopend:
+	emms
+	}
+}
