@@ -1,0 +1,83 @@
+int iRSMemBytes = 0, iRSMaxBytes;
+
+void RadixSort(int *aInt, int iLeft, int iRight) {
+	register int ww = 0, xx, yy, zz = iRight + 1;
+	int iCount[256], iIndex[256], *aDest = (int *)_aligned_malloc(sizeof(int) * (zz - iLeft), 16);
+
+	if((iRSMemBytes += sizeof(int *) * 2 + sizeof(int) * (518 + zz - iLeft)) > iRSMaxBytes) iRSMaxBytes = iRSMemBytes;
+
+	while(ww < 32) {
+		for(xx = 0; xx < 256; xx++) iCount[xx] = 0;
+		for(xx = iLeft; xx < zz; xx++) iCount[(yy = (aInt[xx] >> ww) & 0xff)]++;
+		if(iCount[0] == zz - iLeft) break;
+		iIndex[0] = 0;
+		for(xx = 0; xx < 255; xx++) iIndex[xx + 1] = iIndex[xx] + iCount[xx];
+		for(xx = iLeft; xx < zz; xx++) {
+			yy = aInt[xx];
+			aDest[iIndex[(yy >> ww) & 0xff]++] = yy;
+		}
+		ww += 8;
+		for(xx = 0; xx < 256; xx++) iCount[xx] = 0;
+		for(xx = iLeft; xx < zz; xx++) iCount[(yy = (aDest[xx] >> ww) & 0xff)]++;
+		iIndex[0] = 0;
+		for(xx = 0; xx < 255; xx++) iIndex[xx + 1] = iIndex[xx] + iCount[xx];
+		for(xx = iLeft; xx < zz; xx++) {
+			yy = aDest[xx];
+			aInt[iIndex[(yy >> ww) & 0xff]++] = yy;
+		}
+		ww += 8;
+	}
+	_aligned_free(aDest);
+
+	iRSMemBytes -= sizeof(int *) * 2 + sizeof(int) * (519 + iRight - iLeft);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+
+int iQSMemBytes = 0, iQSMaxBytes;
+
+void QuickSort(int *iArray, int iLeft, int iRight) {	// floating-point pivot value
+	if(iRight > iLeft) {
+		register int iLower = iLeft, iUpper = iRight, iTemp;
+		double fPivot = double(__int64(iArray[iLeft]) + __int64(iArray[(iLeft + iRight) >> 1]) + __int64(iArray[iRight])) / 3.0;
+
+		if((iQSMemBytes += sizeof(int *) + sizeof(int) * 5 + sizeof(double)) > iQSMaxBytes) iQSMaxBytes = iQSMemBytes;
+
+		for(;;) {
+			while(iLower < iRight && double(iArray[iLower]) <= fPivot) iLower++;
+			while(iUpper > iLeft && double(iArray[iUpper]) >= fPivot) iUpper--;
+			if(iLower >= iUpper) break;
+			iTemp = iArray[iLower];
+			iArray[iLower] = iArray[iUpper];
+			iArray[iUpper] = iTemp;
+		}
+
+		if(iLeft < iUpper) QuickSort(iArray, iLeft, iUpper);
+		if(iRight > iLower) QuickSort(iArray, iLower, iRight);
+
+		iQSMemBytes -= sizeof(int *) + sizeof(int) * 5 + sizeof(double);
+	}
+}
+
+void QuickSort_(int *iArray, int iLeft, int iRight) {	// Fixed-point (30.2) pivot value
+	if(iRight > iLeft) {
+		register int iLower = iLeft, iUpper = iRight, iTemp;
+		register int iPivot = ((iArray[iLeft] + iArray[(iLeft + iRight) >> 1] + iArray[iRight]) << 2) / 3;
+
+		if((iQSMemBytes += sizeof(int *) + sizeof(int) * 6) > iQSMaxBytes) iQSMaxBytes = iQSMemBytes;
+
+		for(;;) {
+			while(iLower < iRight && (iArray[iLower] << 2) <= iPivot) iLower++;
+			while(iUpper > iLeft && (iArray[iUpper] << 2) >= iPivot) iUpper--;
+			if(iLower >= iUpper) break;
+			iTemp = iArray[iLower];
+			iArray[iLower] = iArray[iUpper];
+			iArray[iUpper] = iTemp;
+		}
+
+		if(iLeft < iUpper) QuickSort(iArray, iLeft, iUpper);
+		if(iRight > iLower) QuickSort(iArray, iLower, iRight);
+
+		iQSMemBytes -= sizeof(int *) + sizeof(int) * 5 + sizeof(float);
+	}
+}
